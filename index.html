@@ -1,65 +1,67 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Permainan Literasi Mario Menembak Huruf</title>
+    <title>Permainan Mario Menembak Huruf</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-        }
-        /* Improvements for mobile responsiveness */
-        .container {
-            max-width: 600px;
-            margin: auto;
-            padding: 20px;
-            text-align: center;
-        }
+        body { text-align: center; }
+        canvas { border: 1px solid #000; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>Permainan Literasi Mario Menembak Huruf</h1>
-    <p>Use the keyboard controls to play!</p>
-</div>
-<script>
-    // Enhanced keyboard controls
-    document.addEventListener('keydown', function(event) {
-        switch(event.key) {
-            case 'ArrowLeft':
-                // Move Left
-                break;
-            case 'ArrowRight':
-                // Move Right
-                break;
-            case 'Space':
-                // Shoot
-                break;
+    <h1>Permainan Mario Menembak Huruf</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let mario = { x: 50, y: canvas.height / 2, width: 50, height: 50 };
+        let bullets = [];
+        let enemies = [];
+
+        function drawMario() {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(mario.x, mario.y, mario.width, mario.height);
         }
-    });
 
-    // Improved collision detection
-    function checkCollision(object1, object2) {
-        return (object1.x < object2.x + object2.width &&
-                object1.x + object1.width > object2.x &&
-                object1.y < object2.y + object2.height &&
-                object1.height + object1.y > object2.y);
-    }
+        function shootBullet() {
+            bullets.push({ x: mario.x + mario.width, y: mario.y + mario.height / 2, width: 10 });
+        }
 
-    // Audio error handling enhancements
-    let audio = new Audio('path/to/audio/file.mp3');
-    audio.onerror = function() {
-        console.log('Error loading audio file.');
-    };
-    audio.play().catch(function(error) {
-        console.error('Audio playback failed: ', error);
-    });
+        function updateBullets() {
+            bullets.forEach((bullet, index) => {
+                bullet.x += 5;
+                if (bullet.x > canvas.width) {
+                    bullets.splice(index, 1);
+                }
+            });
+        }
 
-    // Scene references and user interface improvements
-    function updateScene() {
-        // Update game scene rendering
-    }
-</script>
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                shootBullet();
+            }
+            if (e.code === 'ArrowUp' && mario.y > 0) {
+                mario.y -= 10;
+            }
+            if (e.code === 'ArrowDown' && mario.y < canvas.height - mario.height) {
+                mario.y += 10;
+            }
+        });
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawMario();
+            updateBullets();
+            bullets.forEach(bullet => {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(bullet.x, bullet.y, bullet.width, 5);
+            });
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
 </body>
 </html>
