@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Misi Mario: Hero Huruf Kecil</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>
+        /* Memanggil fon Glacial Indifference */
+        @import url('https://fonts.cdnfonts.com/css/glacial-indifference');
+
+        body { margin: 0; background: #1a1a1a; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Glacial Indifference', sans-serif; }
+        
+        #start-screen {
+            position: absolute; width: 1920px; height: 1020px;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://img.freepik.com/free-vector/nature-forest-landscape-background_1308-72605.jpg');
+            background-size: cover; display: flex; justify-content: center; align-items: center;
+            z-index: 100; color: white; flex-direction: column; text-align: center;
+        }
+
+        .btn-mula {
+            padding: 25px 60px; font-size: 45px; background: #ffcc00; color: #000;
+            border: none; border-radius: 50px; cursor: pointer; font-weight: bold;
+            box-shadow: 0 10px 0 #cca300; transition: 0.2s;
+        }
+
+        .btn-mula:hover { transform: scale(1.1); background: #ffe066; }
+    </style>
+</head>
+<body>
+
+<div id="start-screen">
+    <h1 style="font-size: 100px; margin-bottom: 10px; text-shadow: 4px 4px #e74c3c;">MISI MARIO</h1>
+    <h2 style="font-size: 50px; margin-bottom: 40px;">HERO HURUF KECIL</h2>
+    <button class="btn-mula" onclick="mulakanGame()">MULA BERMAIN</button>
+</div>
+
+<script>
+let gameInstance;
+
+function mulakanGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    if (!gameInstance) {
+        gameInstance = new Phaser.Game(config);
+    } else {
+        gameInstance.scene.resume('default');
+    }
+}
+
+const config = {
+    type: Phaser.AUTO,
+    width: 1920,
+    height: 1020,
+    backgroundColor: '#87CEEB',
+    physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },
+    scene: { preload: preload, create: create, update: update }
+};
+
+let currentLevel = 0;
+let stars = 0;
+let mario, bullets, targets, questionImg, scoreText, lvlText;
+
+// Data Soalan (10 sahaja untuk tesis)
+const quizData = [
+    { n: 'Ayam', c: 'a', opt: ['a', 'o', 'u'], col: 0xff5e5e },
+    { n: 'Bola', c: 'b', opt: ['b', 'd', 'p'], col: 0x5eafff },
+    { n: 'Cawan', c: 'c', opt: ['c', 'e', 's'], col: 0x5eff8a },
+    { n: 'Duri', c: 'd', opt: ['d', 'b', 'q'], col: 0xffd15e },
+    { n: 'Epal', c: 'e', opt: ['e', 'c', 'o'], col: 0xff5eff },
+    { n: 'Feri', c: 'f', opt: ['f', 't', 'k'], col: 0x5effe8 },
+    { n: 'Gajah', c: 'g', opt: ['g', 'j', 'y'], col: 0xffa35e },
+    { n: 'Hati', c: 'h', opt: ['h', 'n', 'm'], col: 0xffffff },
+    { n: 'Ikan', c: 'i', opt: ['i', 'l', 'j'], col: 0x7a5eff },
+    { n: 'Jari', c: 'j', opt: ['j', 'i', 'g'], col: 0xff5eab }
+];
+
+function preload() {
+    this.load.image('bg', 'https://img.freepik.com/free-vector/nature-forest-landscape-background_1308-72605.jpg');
+    this.load.image('mario', 'https://raw.githubusercontent.com/notwaldorf/mario-game/master/images/mario.png');
+    this.load.image('bullet', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png');
+    this.load.image('home', 'https://cdn-icons-png.flaticon.com/512/25/25694.png');
+    this.load.image('skip', 'https://cdn-icons-png.flaticon.com/512/724/724939.png');
+
+    // Audio
+    this.load.audio('pop', 'https://actions.google.com/sounds/v1/cartoon/pop.ogg');
+    this.load.audio('win', 'https://actions.google.com/sounds/v1/cartoon/clime_up_the_ladder.ogg');
+    this.load.audio('fire', 'https://actions.google.com/sounds/v1/science_fiction/laser_burst.ogg');
+}
+
+function create() {
+    this.add.image(960, 510, 'bg').setDisplaySize(1920, 1020);
+
+    // Mario
+    mario = this.physics.add.sprite(250, 750, 'mario').setScale(0.5);
+    
+    // UI - Score & Level
+    scoreText = this.add.text(50, 40, 'Bintang: ⭐ 0', { fontFamily: '"Glacial Indifference"', fontSize: '55px', fill: '#FFF', stroke: '#000', strokeThickness: 10 });
+    lvlText = this.add.text(1550, 40, 'Soalan: 1/10', { fontFamily: '"Glacial Indifference"', fontSize: '55px', fill: '#FFF', stroke: '#000', strokeThickness: 10 });
+
+    // Butang Navigasi
+    let btnHome = this.add.image(100, 950, 'home').setInteractive().setDisplaySize(80, 80);
+    btnHome.on('pointerdown', () => window.location.reload());
+
+    let btnSkip = this.add.image(1820, 950, 'skip').setInteractive().setDisplaySize(80, 80);
+    btnSkip.on('pointerdown', () => transitionLevel.call(this));
+
+    bullets = this.physics.add.group();
+    targets = this.physics.add.group();
+
+    this.physics.add.overlap(bullets, targets, (bullet, target) => {
+        bullet.destroy();
+        if (target.isCorrect) {
+            this.sound.play('win');
+            stars++;
+            scoreText.setText('Bintang: ⭐ ' + stars);
+            transitionLevel.call(this);
+        } else {
+            this.sound.play('pop');
+            this.cameras.main.shake(200, 0.01);
+        }
+    }, null, this);
+
+    this.input.on('pointerdown', (p) => {
+        let b = bullets.create(mario.x + 50, mario.y, 'bullet').setScale(0.4);
+        this.physics.moveTo(b, p.x, p.y, 1400);
+        this.sound.play('fire', { volume: 0.3 });
+    });
+
+    loadLevel.call(this);
+}
+
+function sebut(ayat) {
+    const s = new SpeechSynthesisUtterance(ayat);
+    s.lang = 'ms-MY';
+    s.rate = 0.85;
+    window.speechSynthesis.speak(s);
+}
+
+function loadLevel() {
+    if (currentLevel >= quizData.length) {
+        showTamat.call(this);
+        return;
+    }
+
+    targets.clear(true, true);
+    if (questionImg) questionImg.destroy();
+
+    let d = quizData[currentLevel];
+    lvlText.setText(`Soalan: ${currentLevel + 1}/10`);
+
+    // Gambar Tengah
+    questionImg = this.add.container(960, 400);
+    let b = this.add.rectangle(0, 0, 550, 450, d.col).setStrokeStyle(12, 0xffffff);
+    let t = this.add.text(0, 0, d.n.toUpperCase(), { fontFamily: '"Glacial Indifference"', fontSize: '110px', fontWeight: 'bold', fill: '#fff' }).setOrigin(0.5);
+    questionImg.add([b, t]);
+
+    sebut(`Tengok ini gambar ${d.n}. Tembak huruf ${d.c} untuk ${d.n}.`);
+
+    d.opt.forEach((l, i) => {
+        let x = 1600;
+        let y = 280 + (i * 260);
+        let c = this.add.container(x, y);
+        let circ = this.add.circle(0, 0, 100, 0xffffff).setStrokeStyle(8, 0xffcc00);
+        let txt = this.add.text(0, 0, l, { fontFamily: '"Glacial Indifference"', fontSize: '140px', fill: '#000', fontWeight: 'bold' }).setOrigin(0.5);
+        
+        c.add([circ, txt]);
+        c.setSize(200, 200);
+        this.physics.world.enable(c);
+        c.isCorrect = (l === d.c);
+
+        // Difficulty scaling: Belon bergerak lebih laju pada level tinggi
+        let speed = 2000 - (currentLevel * 120);
+        this.tweens.add({ targets: c, y: y - 60, duration: speed < 800 ? 800 : speed, yoyo: true, repeat: -1 });
+        targets.add(c);
+    });
+}
+
+function transitionLevel() {
+    currentLevel++;
+    this.cameras.main.fadeOut(300, 255, 255, 255);
+    this.time.delayedCall(300, () => {
+        this.cameras.main.fadeIn(300, 255, 255, 255);
+        loadLevel.call(this);
+    });
+}
+
+function showTamat() {
+    this.add.rectangle(960, 510, 1920, 1020, 0x000000, 0.9);
+    this.add.text(960, 450, 'MISI SELESAI!', { fontFamily: '"Glacial Indifference"', fontSize: '160px', fill: '#ffcc00' }).setOrigin(0.5);
+    this.add.text(960, 600, `Anda kumpul ${stars} Bintang Emas!`, { fontFamily: '"Glacial Indifference"', fontSize: '70px', fill: '#fff' }).setOrigin(0.5);
+    sebut("Tahniah kawan-kawan! Anda telah berjaya membantu Mario menyelesaikan misi!");
+}
+
+function update() {
+    let a = Phaser.Math.Angle.Between(mario.x, mario.y, this.input.x, this.input.y);
+    mario.setRotation(a);
+}
+</script>
+
+</body>
+</html>
